@@ -1,0 +1,144 @@
+import 'package:flutter/material.dart';
+
+import 'screens/splash_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/admin_screens.dart';
+import 'screens/employer_dashboard_screen.dart';
+import 'screens/post_job_screen.dart';
+import 'screens/employer_applications_screen.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+
+      title: 'AKTech Overseas',
+
+      initialRoute: '/',
+
+      routes: {
+        // =====================================================
+        // SPLASH
+        // =====================================================
+
+        '/': (context) =>
+        const SplashScreen(),
+
+        // =====================================================
+        // LOGIN
+        // =====================================================
+
+        '/login': (context) =>
+        const LoginScreen(),
+
+        // =====================================================
+        // NORMAL USER
+        // =====================================================
+
+        '/home': (context) =>
+        const HomeScreen(),
+
+        // =====================================================
+        // ADMIN
+        // =====================================================
+
+        '/admin': (context) =>
+        const AdminScreens(),
+
+        // =====================================================
+        // EMPLOYER DASHBOARD
+        // =====================================================
+
+        '/employer': (context) =>
+        const EmployerDashboardScreen(),
+
+        // =====================================================
+        // POST JOB
+        // =====================================================
+
+        '/post-job': (context) {
+          final arguments =
+              ModalRoute.of(context)
+                  ?.settings
+                  .arguments;
+
+          int? employerId;
+
+          if (arguments is int) {
+            employerId = arguments;
+          } else if (arguments != null) {
+            employerId =
+                int.tryParse(
+                  arguments.toString(),
+                );
+          }
+
+          if (employerId == null) {
+            return  Scaffold(
+              body: Center(
+                child: Text(
+                  'Employer ID not found.',
+                  style: TextStyle(
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return PostJobScreen(
+            employerId: employerId,
+          );
+        },
+
+        // =====================================================
+        // EMPLOYER APPLICATIONS
+        // =====================================================
+
+        '/employer-applications':
+            (context) {
+          final arguments =
+              ModalRoute.of(context)
+                  ?.settings
+                  .arguments;
+
+          int? employerId;
+
+          if (arguments is int) {
+            employerId = arguments;
+          } else if (arguments != null) {
+            employerId =
+                int.tryParse(
+                  arguments.toString(),
+                );
+          }
+
+          if (employerId == null) {
+            return  Scaffold(
+              body: Center(
+                child: Text(
+                  'Employer ID not found.',
+                  style: TextStyle(
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return EmployerApplicationsScreen(
+            employerId: employerId,
+          );
+        },
+      },
+    );
+  }
+}
