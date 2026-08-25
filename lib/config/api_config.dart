@@ -1,4 +1,4 @@
 class ApiConfig {
   static const String baseUrl =
-      'https://aktechoverseasbackend-p7k3i1b3.b4a.run';
+      'https://aktechoverseasbackend-4px0x72v.b4a.run';
 }
