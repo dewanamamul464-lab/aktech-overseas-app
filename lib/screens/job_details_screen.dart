@@ -3,6 +3,7 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/job_model.dart';
+import '../services/application_service.dart';
 import '../services/saved_job_service.dart';
 import '../widgets/country_flag.dart';
 
@@ -25,13 +26,21 @@ class _JobDetailsScreenState
   final SavedJobService savedJobService =
   SavedJobService();
 
+  final ApplicationService applicationService =
+  ApplicationService();
+
   bool isSaved = false;
+
   bool isSaving = false;
+
   bool isOpeningApplication = false;
+
+  bool isApplying = false;
 
   @override
   void initState() {
     super.initState();
+
     _checkSavedStatus();
   }
 
@@ -87,7 +96,8 @@ class _JobDetailsScreenState
                 ? 'Job saved successfully ❤️'
                 : 'Job removed from saved jobs',
           ),
-          duration: const Duration(seconds: 2),
+          duration:
+          const Duration(seconds: 2),
         ),
       );
     } catch (_) {
@@ -110,8 +120,115 @@ class _JobDetailsScreenState
   // =========================================================
   // APPLY NOW
   // =========================================================
+  //
+  // EMPLOYER JOB:
+  //
+  // employerId != null
+  //        ↓
+  // POST /api/applications
+  //
+  // EXTERNAL JOB:
+  //
+  // employerId == null
+  //        ↓
+  // Open sourceUrl
+  //
+  // =========================================================
 
   Future<void> _applyNow() async {
+
+    // =======================================================
+    // AKTECH EMPLOYER JOB
+    // =======================================================
+
+    if (widget.job.employerId != null) {
+
+      if (isApplying) {
+        return;
+      }
+
+      setState(() {
+        isApplying = true;
+      });
+
+      try {
+        debugPrint(
+          '======================================',
+        );
+
+        debugPrint(
+          'INTERNAL EMPLOYER JOB APPLICATION',
+        );
+
+        debugPrint(
+          'JOB ID: ${widget.job.id}',
+        );
+
+        debugPrint(
+          'EMPLOYER ID: ${widget.job.employerId}',
+        );
+
+        debugPrint(
+          '======================================',
+        );
+
+        final success =
+        await applicationService.applyJob(
+          widget.job.id,
+        );
+
+        if (!mounted) return;
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Application submitted successfully.',
+              ),
+              duration:
+              Duration(seconds: 3),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Unable to submit application. Please try again.',
+              ),
+              duration:
+              Duration(seconds: 3),
+            ),
+          );
+        }
+      } catch (e) {
+        if (!mounted) return;
+
+        debugPrint(
+          'INTERNAL APPLICATION ERROR: $e',
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unable to submit application.',
+            ),
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            isApplying = false;
+          });
+        }
+      }
+
+      return;
+    }
+
+    // =======================================================
+    // EXTERNAL JOB
+    // =======================================================
+
     final urlString =
     widget.job.sourceUrl.trim();
 
@@ -123,6 +240,7 @@ class _JobDetailsScreenState
           ),
         ),
       );
+
       return;
     }
 
@@ -138,6 +256,7 @@ class _JobDetailsScreenState
         !uri.hasScheme ||
         (uri.scheme != 'http' &&
             uri.scheme != 'https')) {
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -145,19 +264,24 @@ class _JobDetailsScreenState
           ),
         ),
       );
+
       return;
     }
 
-    if (isOpeningApplication) return;
+    if (isOpeningApplication) {
+      return;
+    }
 
     setState(() {
       isOpeningApplication = true;
     });
 
     try {
-      final launched = await launchUrl(
+      final launched =
+      await launchUrl(
         uri,
-        mode: LaunchMode.externalApplication,
+        mode:
+        LaunchMode.externalApplication,
       );
 
       if (!launched && mounted) {
@@ -196,8 +320,17 @@ class _JobDetailsScreenState
   Widget build(BuildContext context) {
     final job = widget.job;
 
+    final bool isEmployerJob =
+        job.employerId != null;
+
+    final bool isApplyingNow =
+    isEmployerJob
+        ? isApplying
+        : isOpeningApplication;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor:
+      Colors.grey.shade50,
 
       // =====================================================
       // APP BAR
@@ -218,15 +351,20 @@ class _JobDetailsScreenState
         actions: [
           IconButton(
             onPressed:
-            isSaving ? null : _toggleSaveJob,
+            isSaving
+                ? null
+                : _toggleSaveJob,
+
             tooltip: isSaved
                 ? 'Remove saved job'
                 : 'Save job',
+
             icon: isSaving
                 ? const SizedBox(
               width: 21,
               height: 21,
-              child: CircularProgressIndicator(
+              child:
+              CircularProgressIndicator(
                 strokeWidth: 2,
               ),
             )
@@ -248,7 +386,8 @@ class _JobDetailsScreenState
 
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(
+          padding:
+          const EdgeInsets.only(
             bottom: 30,
           ),
           child: Column(
@@ -262,101 +401,125 @@ class _JobDetailsScreenState
 
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(
+                padding:
+                const EdgeInsets.fromLTRB(
                   20,
                   24,
                   20,
                   25,
                 ),
-                decoration: const BoxDecoration(
+                decoration:
+                const BoxDecoration(
                   color: Colors.white,
                 ),
                 child: Column(
                   children: [
 
-                    // COMPANY LOGO
                     Container(
                       width: 78,
                       height: 78,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
+                      decoration:
+                      BoxDecoration(
+                        gradient:
+                        LinearGradient(
                           colors: [
                             Colors.blue.shade700,
                             Colors.blue.shade400,
                           ],
                         ),
                         borderRadius:
-                        BorderRadius.circular(22),
+                        BorderRadius.circular(
+                          22,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color:
-                            Colors.blue.withOpacity(
+                            Colors.blue
+                                .withOpacity(
                               0.18,
                             ),
                             blurRadius: 15,
                             offset:
-                            const Offset(0, 7),
+                            const Offset(
+                              0,
+                              7,
+                            ),
                           ),
                         ],
                       ),
-                      alignment: Alignment.center,
+                      alignment:
+                      Alignment.center,
                       child: Text(
                         job.company.isNotEmpty
                             ? job.company[0]
                             .toUpperCase()
                             : '?',
-                        style: const TextStyle(
+                        style:
+                        const TextStyle(
                           color: Colors.white,
                           fontSize: 32,
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                          FontWeight.bold,
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 17),
+                    const SizedBox(
+                      height: 17,
+                    ),
 
-                    // POSITION
                     Text(
                       job.position.isEmpty
                           ? 'Job Position'
                           : job.position,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      textAlign:
+                      TextAlign.center,
+                      style:
+                      const TextStyle(
                         fontSize: 23,
-                        fontWeight: FontWeight.w800,
+                        fontWeight:
+                        FontWeight.w800,
                         height: 1.25,
                       ),
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(
+                      height: 8,
+                    ),
 
-                    // COMPANY
                     Text(
                       job.company.isEmpty
                           ? 'Company'
                           : job.company,
-                      textAlign: TextAlign.center,
+                      textAlign:
+                      TextAlign.center,
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color:
+                        Colors.grey.shade600,
                         fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                        fontWeight:
+                        FontWeight.w500,
                       ),
                     ),
 
-                    const SizedBox(height: 15),
+                    const SizedBox(
+                      height: 15,
+                    ),
 
-                    // LOCATION
                     Row(
                       mainAxisAlignment:
                       MainAxisAlignment.center,
                       children: [
 
                         CountryFlagWidget(
-                          country: job.country,
+                          country:
+                          job.country,
                           size: 25,
                         ),
 
-                        const SizedBox(width: 8),
+                        const SizedBox(
+                          width: 8,
+                        ),
 
                         Flexible(
                           child: Text(
@@ -364,12 +527,15 @@ class _JobDetailsScreenState
                                 ? 'Location not specified'
                                 : job.country,
                             overflow:
-                            TextOverflow.ellipsis,
+                            TextOverflow
+                                .ellipsis,
                             style: TextStyle(
-                              color:
-                              Colors.grey.shade700,
+                              color: Colors
+                                  .grey
+                                  .shade700,
                               fontWeight:
-                              FontWeight.w600,
+                              FontWeight
+                                  .w600,
                             ),
                           ),
                         ),
@@ -379,7 +545,9 @@ class _JobDetailsScreenState
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(
+                height: 12,
+              ),
 
               // =================================================
               // JOB INFORMATION
@@ -387,7 +555,8 @@ class _JobDetailsScreenState
 
               _sectionCard(
                 title: 'Job Information',
-                icon: Icons.work_outline,
+                icon:
+                Icons.work_outline,
                 child: Wrap(
                   spacing: 10,
                   runSpacing: 10,
@@ -401,13 +570,15 @@ class _JobDetailsScreenState
                     ),
 
                     _detailChip(
-                      Icons.business_center_outlined,
+                      Icons
+                          .business_center_outlined,
                       job.jobType.isEmpty
                           ? 'General'
                           : job.jobType,
                     ),
 
-                    if (job.experience.isNotEmpty)
+                    if (job.experience
+                        .isNotEmpty)
                       _detailChip(
                         Icons.timeline,
                         job.experience,
@@ -422,7 +593,16 @@ class _JobDetailsScreenState
                       _detailChip(
                         Icons.verified,
                         'Verified',
-                        iconColor: Colors.green,
+                        iconColor:
+                        Colors.green,
+                      ),
+
+                    if (isEmployerJob)
+                      _detailChip(
+                        Icons.business,
+                        'AKTech Employer',
+                        iconColor:
+                        Colors.blue.shade700,
                       ),
                   ],
                 ),
@@ -434,7 +614,8 @@ class _JobDetailsScreenState
 
               _sectionCard(
                 title: 'Job Description',
-                icon: Icons.description_outlined,
+                icon:
+                Icons.description_outlined,
                 child: _buildHtmlContent(
                   job.description,
                 ),
@@ -444,11 +625,14 @@ class _JobDetailsScreenState
               // REQUIREMENTS
               // =================================================
 
-              if (job.requirements.isNotEmpty)
+              if (job.requirements
+                  .isNotEmpty)
                 _sectionCard(
                   title: 'Requirements',
-                  icon: Icons.checklist_outlined,
-                  child: _buildHtmlContent(
+                  icon:
+                  Icons.checklist_outlined,
+                  child:
+                  _buildHtmlContent(
                     job.requirements,
                   ),
                 ),
@@ -466,15 +650,19 @@ class _JobDetailsScreenState
 
                       Icon(
                         Icons.language,
-                        color: Colors.blue.shade700,
+                        color:
+                        Colors.blue.shade700,
                       ),
 
-                      const SizedBox(width: 10),
+                      const SizedBox(
+                        width: 10,
+                      ),
 
                       Expanded(
                         child: Text(
                           job.source,
-                          style: const TextStyle(
+                          style:
+                          const TextStyle(
                             fontSize: 15,
                             fontWeight:
                             FontWeight.w600,
@@ -490,24 +678,31 @@ class _JobDetailsScreenState
               // =================================================
 
               _sectionCard(
-                title: 'Application Information',
-                icon: Icons.event_outlined,
+                title:
+                'Application Information',
+                icon:
+                Icons.event_outlined,
                 child: Row(
                   children: [
 
                     Icon(
-                      Icons.calendar_today_outlined,
+                      Icons
+                          .calendar_today_outlined,
                       size: 20,
-                      color: Colors.blue.shade700,
+                      color:
+                      Colors.blue.shade700,
                     ),
 
-                    const SizedBox(width: 10),
+                    const SizedBox(
+                      width: 10,
+                    ),
 
                     Expanded(
                       child: Text(
                         'Application deadline: '
                             '${job.expiryDate}',
-                        style: const TextStyle(
+                        style:
+                        const TextStyle(
                           fontSize: 14.5,
                           fontWeight:
                           FontWeight.w500,
@@ -518,108 +713,138 @@ class _JobDetailsScreenState
                 ),
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(
+                height: 8,
+              ),
 
               // =================================================
               // APPLY NOW
               // =================================================
 
               Padding(
-                padding: const EdgeInsets.symmetric(
+                padding:
+                const EdgeInsets.symmetric(
                   horizontal: 20,
                 ),
                 child: SizedBox(
                   width: double.infinity,
                   height: 54,
-                  child: ElevatedButton.icon(
+                  child:
+                  ElevatedButton.icon(
                     onPressed:
-                    isOpeningApplication
+                    isApplyingNow
                         ? null
                         : _applyNow,
-                    icon: isOpeningApplication
+
+                    icon: isApplyingNow
                         ? const SizedBox(
                       width: 21,
                       height: 21,
                       child:
                       CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        color: Colors.white,
+                        color:
+                        Colors.white,
                       ),
                     )
-                        : const Icon(
-                      Icons.open_in_new,
+                        : Icon(
+                      isEmployerJob
+                          ? Icons
+                          .send_outlined
+                          : Icons
+                          .open_in_new,
                     ),
+
                     label: Text(
-                      isOpeningApplication
-                          ? 'Opening...'
-                          : 'Apply Now',
-                      style: const TextStyle(
+                      isApplyingNow
+                          ? isEmployerJob
+                          ? 'Applying...'
+                          : 'Opening...'
+                          : isEmployerJob
+                          ? 'Apply Now'
+                          : 'Apply on Original Site',
+                      style:
+                      const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        fontWeight:
+                        FontWeight.w700,
                       ),
                     ),
+
                     style:
                     ElevatedButton.styleFrom(
                       elevation: 1,
                       backgroundColor:
                       Colors.blue.shade700,
-                      foregroundColor: Colors.white,
+                      foregroundColor:
+                      Colors.white,
                       disabledBackgroundColor:
                       Colors.blue.shade300,
                       shape:
                       RoundedRectangleBorder(
                         borderRadius:
-                        BorderRadius.circular(14),
+                        BorderRadius.circular(
+                          14,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 15),
+              const SizedBox(
+                height: 15,
+              ),
 
               // =================================================
-              // APPLICATION LINK INFORMATION
+              // APPLICATION INFORMATION
               // =================================================
 
-              if (job.sourceUrl.isNotEmpty)
-                Padding(
-                  padding:
-                  const EdgeInsets.symmetric(
-                    horizontal: 20,
-                  ),
-                  child: Row(
-                    crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                    children: [
+              Padding(
+                padding:
+                const EdgeInsets.symmetric(
+                  horizontal: 20,
+                ),
+                child: Row(
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+                  children: [
 
-                      Icon(
-                        Icons.info_outline,
-                        size: 17,
-                        color: Colors.grey.shade600,
-                      ),
+                    Icon(
+                      Icons.info_outline,
+                      size: 17,
+                      color:
+                      Colors.grey.shade600,
+                    ),
 
-                      const SizedBox(width: 7),
+                    const SizedBox(
+                      width: 7,
+                    ),
 
-                      Expanded(
-                        child: Text(
-                          'You will be redirected to '
-                              '${job.source.isEmpty ? 'the original job source' : job.source} '
-                              'to complete your application.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color:
-                            Colors.grey.shade600,
-                            height: 1.4,
-                          ),
+                    Expanded(
+                      child: Text(
+                        isEmployerJob
+                            ? 'Your application will be submitted directly to the employer through AKTech Overseas.'
+                            : 'You will be redirected to '
+                            '${job.source.isEmpty ? 'the original job source' : job.source} '
+                            'to complete your application.',
+                        textAlign:
+                        TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color:
+                          Colors.grey.shade600,
+                          height: 1.4,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+              ),
 
-              const SizedBox(height: 10),
+              const SizedBox(
+                height: 10,
+              ),
             ],
           ),
         ),
@@ -631,12 +856,15 @@ class _JobDetailsScreenState
   // HTML CONTENT
   // =========================================================
 
-  Widget _buildHtmlContent(String html) {
+  Widget _buildHtmlContent(
+      String html) {
+
     if (html.trim().isEmpty) {
       return Text(
         'No information available.',
         style: TextStyle(
-          color: Colors.grey.shade600,
+          color:
+          Colors.grey.shade600,
           height: 1.5,
         ),
       );
@@ -650,8 +878,10 @@ class _JobDetailsScreenState
           margin: Margins.zero,
           padding: HtmlPaddings.zero,
           fontSize: FontSize(15),
-          color: Colors.grey.shade800,
-          lineHeight: const LineHeight(1.55),
+          color:
+          Colors.grey.shade800,
+          lineHeight:
+          const LineHeight(1.55),
         ),
 
         'p': Style(
@@ -662,7 +892,8 @@ class _JobDetailsScreenState
 
         'h1': Style(
           fontSize: FontSize(20),
-          fontWeight: FontWeight.w700,
+          fontWeight:
+          FontWeight.w700,
           margin: Margins.only(
             top: 8,
             bottom: 10,
@@ -671,7 +902,8 @@ class _JobDetailsScreenState
 
         'h2': Style(
           fontSize: FontSize(18),
-          fontWeight: FontWeight.w700,
+          fontWeight:
+          FontWeight.w700,
           margin: Margins.only(
             top: 8,
             bottom: 10,
@@ -680,7 +912,8 @@ class _JobDetailsScreenState
 
         'h3': Style(
           fontSize: FontSize(16),
-          fontWeight: FontWeight.w700,
+          fontWeight:
+          FontWeight.w700,
           margin: Margins.only(
             top: 8,
             bottom: 8,
@@ -688,7 +921,8 @@ class _JobDetailsScreenState
         ),
 
         'strong': Style(
-          fontWeight: FontWeight.w700,
+          fontWeight:
+          FontWeight.w700,
         ),
 
         'ul': Style(
@@ -696,7 +930,8 @@ class _JobDetailsScreenState
             top: 5,
             bottom: 10,
           ),
-          padding: HtmlPaddings.only(
+          padding:
+          HtmlPaddings.only(
             left: 20,
           ),
         ),
@@ -706,7 +941,8 @@ class _JobDetailsScreenState
             top: 5,
             bottom: 10,
           ),
-          padding: HtmlPaddings.only(
+          padding:
+          HtmlPaddings.only(
             left: 20,
           ),
         ),
@@ -737,20 +973,23 @@ class _JobDetailsScreenState
   }) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(
+      margin:
+      const EdgeInsets.only(
         bottom: 12,
       ),
-      padding: const EdgeInsets.all(18),
+      padding:
+      const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius:
         BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color:
-            Colors.black.withOpacity(0.035),
+            color: Colors.black
+                .withOpacity(0.035),
             blurRadius: 8,
-            offset: const Offset(0, 3),
+            offset:
+            const Offset(0, 3),
           ),
         ],
       ),
@@ -765,24 +1004,32 @@ class _JobDetailsScreenState
               Container(
                 width: 38,
                 height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                decoration:
+                BoxDecoration(
+                  color:
+                  Colors.blue.shade50,
                   borderRadius:
-                  BorderRadius.circular(11),
+                  BorderRadius.circular(
+                    11,
+                  ),
                 ),
                 child: Icon(
                   icon,
-                  color: Colors.blue.shade700,
+                  color:
+                  Colors.blue.shade700,
                   size: 21,
                 ),
               ),
 
-              const SizedBox(width: 11),
+              const SizedBox(
+                width: 11,
+              ),
 
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style:
+                  const TextStyle(
                     fontSize: 17,
                     fontWeight:
                     FontWeight.w700,
@@ -792,7 +1039,9 @@ class _JobDetailsScreenState
             ],
           ),
 
-          const SizedBox(height: 15),
+          const SizedBox(
+            height: 15,
+          ),
 
           child,
         ],
@@ -815,13 +1064,16 @@ class _JobDetailsScreenState
         horizontal: 12,
         vertical: 9,
       ),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+      decoration:
+      BoxDecoration(
+        color:
+        Colors.grey.shade100,
         borderRadius:
         BorderRadius.circular(11),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize:
+        MainAxisSize.min,
         children: [
 
           Icon(
@@ -832,7 +1084,9 @@ class _JobDetailsScreenState
                 Colors.blue.shade700,
           ),
 
-          const SizedBox(width: 7),
+          const SizedBox(
+            width: 7,
+          ),
 
           Text(
             text,

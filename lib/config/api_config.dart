@@ -1,4 +1,4 @@
 class ApiConfig {
   static const String baseUrl =
-      'https://aktech-overseas-backend.onrender.com';
+      'https://aktechoverseasbackend-p7k3i1b3.b4a.run';
 }

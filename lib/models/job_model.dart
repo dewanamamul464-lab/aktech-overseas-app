@@ -2,19 +2,43 @@ import 'dart:convert';
 
 class Job {
   final int id;
+
   final String country;
+
   final String company;
+
   final String position;
+
   final String salary;
+
   final String jobType;
+
   final String description;
+
   final String requirements;
+
   final String experience;
+
   final int vacancies;
+
   final String expiryDate;
+
   final bool verified;
+
   final String source;
+
   final String sourceUrl;
+
+  // =========================================================
+  // EMPLOYER ID
+  // =========================================================
+  //
+  // null  = external/imported job
+  // value = job posted by an AKTech employer
+  //
+  // =========================================================
+
+  final int? employerId;
 
   Job({
     required this.id,
@@ -31,21 +55,13 @@ class Job {
     required this.verified,
     required this.source,
     required this.sourceUrl,
+    required this.employerId,
   });
 
   // =========================================================
   // SAFE STRING
   // =========================================================
-  //
-  // Scraped API data can sometimes contain:
-  //
-  // null
-  // numbers
-  // booleans
-  // empty values
-  //
-  // This prevents runtime type errors.
-  //
+
   static String _stringValue(dynamic value) {
     if (value == null) {
       return '';
@@ -107,27 +123,43 @@ class Job {
   }
 
   // =========================================================
+  // SAFE OPTIONAL INTEGER
+  // =========================================================
+
+  static int? _nullableIntValue(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value is int) {
+      return value;
+    }
+
+    if (value is num) {
+      return value.toInt();
+    }
+
+    final parsed =
+    int.tryParse(
+      value.toString().trim(),
+    );
+
+    return parsed;
+  }
+
+  // =========================================================
   // DECODE HTML ENTITIES
   // =========================================================
-  //
-  // Sometimes scraped APIs return HTML like:
-  //
-  // &lt;p&gt;We are looking for...&lt;/p&gt;
-  //
-  // instead of:
-  //
-  // <p>We are looking for...</p>
-  //
-  // flutter_html needs the actual HTML.
-  //
-  static String _decodeHtmlEntities(String value) {
+
+  static String _decodeHtmlEntities(
+      String value,
+      ) {
     if (value.isEmpty) {
       return '';
     }
 
     String result = value;
 
-    // Common HTML entities.
     result = result.replaceAll(
       '&nbsp;',
       ' ',
@@ -215,18 +247,10 @@ class Job {
         json['jobType'],
       ),
 
-      // IMPORTANT:
-      // Keep HTML here.
-      //
-      // JobDetailsScreen uses flutter_html
-      // to render it properly.
       description: _prepareHtml(
         json['description'],
       ),
 
-      // IMPORTANT:
-      // Keep HTML here as well because requirements
-      // can contain <ul>, <li>, <strong>, etc.
       requirements: _prepareHtml(
         json['requirements'],
       ),
@@ -254,6 +278,14 @@ class Job {
       sourceUrl: _stringValue(
         json['sourceUrl'],
       ),
+
+      // =====================================================
+      // EMPLOYER ID
+      // =====================================================
+
+      employerId: _nullableIntValue(
+        json['employerId'],
+      ),
     );
   }
 
@@ -277,6 +309,7 @@ class Job {
       'verified': verified,
       'source': source,
       'sourceUrl': sourceUrl,
+      'employerId': employerId,
     };
   }
 }
