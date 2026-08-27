@@ -1,11 +1,15 @@
-import java.util.Properties
-import java.io.FileInputStream
 
-plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("dev.flutter.flutter-gradle-plugin")
-}
+import java.util.Properties
+        import java.io.FileInputStream
+
+        plugins {
+            id("com.android.application")
+    // START: FlutterFire Configuration
+    id("com.google.gms.google-services")
+    // END: FlutterFire Configuration
+            id("org.jetbrains.kotlin.android")
+            id("dev.flutter.flutter-gradle-plugin")
+        }
 
 // =========================================================
 // LOAD KEY PROPERTIES
@@ -19,7 +23,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.aktech.overseas"
+    namespace = "com.aktech.overseas.app"
 
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
@@ -30,7 +34,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.aktech.overseas"
+        applicationId = "com.aktech.overseas.app"
 
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -78,3 +82,4 @@ kotlin {
 flutter {
     source = "../.."
 }
+

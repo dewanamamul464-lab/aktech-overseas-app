@@ -1,8 +1,1 @@
-class AppConstants {
-
-  static const String appName = "AKTech Overseas";
-
-  static const String baseUrl =
-      "http://192.168.1.7:8080";
-
-}
+class AppConstants { static const String appName = "AKTech Overseas"; static const String baseUrl = "https://vh-prod-repository-name-aktech-overseas-backend-main-7b7170-079.livemy.site"; }

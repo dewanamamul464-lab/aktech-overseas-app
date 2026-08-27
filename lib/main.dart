@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+import 'firebase_options.dart';
 
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
@@ -8,7 +11,13 @@ import 'screens/employer_dashboard_screen.dart';
 import 'screens/post_job_screen.dart';
 import 'screens/employer_applications_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const MyApp());
 }
 
@@ -29,29 +38,25 @@ class MyApp extends StatelessWidget {
         // SPLASH
         // =====================================================
 
-        '/': (context) =>
-        const SplashScreen(),
+        '/': (context) => const SplashScreen(),
 
         // =====================================================
         // LOGIN
         // =====================================================
 
-        '/login': (context) =>
-        const LoginScreen(),
+        '/login': (context) => const LoginScreen(),
 
         // =====================================================
         // NORMAL USER
         // =====================================================
 
-        '/home': (context) =>
-        const HomeScreen(),
+        '/home': (context) => const HomeScreen(),
 
         // =====================================================
         // ADMIN
         // =====================================================
 
-        '/admin': (context) =>
-        const AdminScreens(),
+        '/admin': (context) => const AdminScreens(),
 
         // =====================================================
         // EMPLOYER DASHBOARD
@@ -66,23 +71,18 @@ class MyApp extends StatelessWidget {
 
         '/post-job': (context) {
           final arguments =
-              ModalRoute.of(context)
-                  ?.settings
-                  .arguments;
+              ModalRoute.of(context)?.settings.arguments;
 
           int? employerId;
 
           if (arguments is int) {
             employerId = arguments;
           } else if (arguments != null) {
-            employerId =
-                int.tryParse(
-                  arguments.toString(),
-                );
+            employerId = int.tryParse(arguments.toString());
           }
 
           if (employerId == null) {
-            return  Scaffold(
+            return const Scaffold(
               body: Center(
                 child: Text(
                   'Employer ID not found.',
@@ -103,26 +103,20 @@ class MyApp extends StatelessWidget {
         // EMPLOYER APPLICATIONS
         // =====================================================
 
-        '/employer-applications':
-            (context) {
+        '/employer-applications': (context) {
           final arguments =
-              ModalRoute.of(context)
-                  ?.settings
-                  .arguments;
+              ModalRoute.of(context)?.settings.arguments;
 
           int? employerId;
 
           if (arguments is int) {
             employerId = arguments;
           } else if (arguments != null) {
-            employerId =
-                int.tryParse(
-                  arguments.toString(),
-                );
+            employerId = int.tryParse(arguments.toString());
           }
 
           if (employerId == null) {
-            return  Scaffold(
+            return const Scaffold(
               body: Center(
                 child: Text(
                   'Employer ID not found.',

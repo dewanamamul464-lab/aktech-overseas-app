@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "952625977006",
+    "project_id": "aktech-overseas",
+    "storage_bucket": "aktech-overseas.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:952625977006:android:bb9a7b5f8e950f56e77f3f",
+        "android_client_info": {
+          "package_name": "com.aktech.overseas.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2nJThKlGmpUdcAkQYAyKoG3A_XolvNxA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

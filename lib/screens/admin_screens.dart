@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../services/AdminEmployerService.dart';
+import '../services/AdminApplicantService.dart';
 
 class AdminScreens extends StatefulWidget {
   const AdminScreens({super.key});
@@ -10,22 +11,44 @@ class AdminScreens extends StatefulWidget {
   State<AdminScreens> createState() => _AdminScreensState();
 }
 
-class _AdminScreensState extends State<AdminScreens> {
+class _AdminScreensState extends State<AdminScreens>
+    with SingleTickerProviderStateMixin {
   final AdminEmployerService adminEmployerService =
   AdminEmployerService();
 
+  final AdminApplicantService adminApplicantService =
+  AdminApplicantService();
+
   final AuthService authService = AuthService();
 
+  late TabController _tabController;
+
   List<dynamic> employers = [];
+  List<dynamic> applicants = [];
 
-  bool loading = true;
+  bool loadingEmployers = true;
+  bool loadingApplicants = true;
 
-  String? errorMessage;
+  String? employerErrorMessage;
+  String? applicantErrorMessage;
 
   @override
   void initState() {
     super.initState();
+
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+    );
+
     loadEmployers();
+    loadApplicants();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   // =========================================================
@@ -36,18 +59,19 @@ class _AdminScreensState extends State<AdminScreens> {
     if (!mounted) return;
 
     setState(() {
-      loading = true;
-      errorMessage = null;
+      loadingEmployers = true;
+      employerErrorMessage = null;
     });
 
-    final data = await adminEmployerService.getAllEmployers();
+    final data =
+    await adminEmployerService.getAllEmployers();
 
     if (!mounted) return;
 
     if (data == null) {
       setState(() {
-        loading = false;
-        errorMessage =
+        loadingEmployers = false;
+        employerErrorMessage =
         'Could not load employers.\n\n'
             'Check your ADMIN login and JWT token.';
       });
@@ -57,8 +81,53 @@ class _AdminScreensState extends State<AdminScreens> {
 
     setState(() {
       employers = data;
-      loading = false;
+      loadingEmployers = false;
     });
+  }
+
+  // =========================================================
+  // LOAD APPLICANTS
+  // =========================================================
+
+  Future<void> loadApplicants() async {
+    if (!mounted) return;
+
+    setState(() {
+      loadingApplicants = true;
+      applicantErrorMessage = null;
+    });
+
+    final data =
+    await adminApplicantService.getAllApplicants();
+
+    if (!mounted) return;
+
+    if (data == null) {
+      setState(() {
+        loadingApplicants = false;
+        applicantErrorMessage =
+        'Could not load applicants.\n\n'
+            'Check your ADMIN login and JWT token.';
+      });
+
+      return;
+    }
+
+    setState(() {
+      applicants = data;
+      loadingApplicants = false;
+    });
+  }
+
+  // =========================================================
+  // REFRESH EVERYTHING
+  // =========================================================
+
+  Future<void> refreshAll() async {
+    await Future.wait([
+      loadEmployers(),
+      loadApplicants(),
+    ]);
   }
 
   // =========================================================
@@ -110,7 +179,7 @@ class _AdminScreensState extends State<AdminScreens> {
   }
 
   // =========================================================
-  // APPROVE
+  // APPROVE EMPLOYER
   // =========================================================
 
   Future<void> approveEmployer(
@@ -143,7 +212,7 @@ class _AdminScreensState extends State<AdminScreens> {
   }
 
   // =========================================================
-  // REJECT
+  // REJECT EMPLOYER
   // =========================================================
 
   Future<void> rejectEmployer(
@@ -165,7 +234,8 @@ class _AdminScreensState extends State<AdminScreens> {
 
     if (result != null) {
       showMessage(
-        '${employer['companyName'] ?? 'Employer'} rejected.',
+        '${employer['companyName'] ?? 'Employer'} '
+            'rejected.',
       );
 
       await loadEmployers();
@@ -175,7 +245,7 @@ class _AdminScreensState extends State<AdminScreens> {
   }
 
   // =========================================================
-  // DELETE
+  // DELETE EMPLOYER
   // =========================================================
 
   Future<void> deleteEmployer(
@@ -191,7 +261,8 @@ class _AdminScreensState extends State<AdminScreens> {
     }
 
     final companyName =
-        employer['companyName']?.toString() ?? 'Employer';
+        employer['companyName']?.toString() ??
+            'Employer';
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -199,18 +270,25 @@ class _AdminScreensState extends State<AdminScreens> {
         return AlertDialog(
           title: const Text('Delete Employer'),
           content: Text(
-            'Are you sure you want to delete $companyName?',
+            'Are you sure you want to permanently delete '
+                '$companyName?',
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(dialogContext, false);
+                Navigator.pop(
+                  dialogContext,
+                  false,
+                );
               },
               child: const Text('CANCEL'),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(dialogContext, true);
+                Navigator.pop(
+                  dialogContext,
+                  true,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -241,6 +319,85 @@ class _AdminScreensState extends State<AdminScreens> {
     } else {
       showMessage(
         'Failed to delete employer.',
+      );
+    }
+  }
+
+  // =========================================================
+  // DELETE APPLICANT
+  // =========================================================
+
+  Future<void> deleteApplicant(
+      Map<String, dynamic> applicant,
+      ) async {
+    final id = int.tryParse(
+      applicant['id'].toString(),
+    );
+
+    if (id == null) {
+      showMessage('Invalid applicant ID.');
+      return;
+    }
+
+    final fullName =
+        applicant['fullName']?.toString() ??
+            'Applicant';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Applicant'),
+          content: Text(
+            'Are you sure you want to permanently delete '
+                '$fullName?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                  false,
+                );
+              },
+              child: const Text('CANCEL'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                  true,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('DELETE'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    final success =
+    await adminApplicantService.deleteApplicant(id);
+
+    if (!mounted) return;
+
+    if (success) {
+      showMessage(
+        'Applicant deleted successfully.',
+      );
+
+      await loadApplicants();
+    } else {
+      showMessage(
+        'Failed to delete applicant.',
       );
     }
   }
@@ -322,7 +479,8 @@ class _AdminScreensState extends State<AdminScreens> {
         employer['address']?.toString() ?? '';
 
     final registrationNumber =
-        employer['registrationNumber']?.toString() ?? '';
+        employer['registrationNumber']?.toString() ??
+            '';
 
     final status =
         employer['status']?.toString() ?? 'PENDING';
@@ -350,10 +508,6 @@ class _AdminScreensState extends State<AdminScreens> {
           crossAxisAlignment:
           CrossAxisAlignment.start,
           children: [
-            // =================================================
-            // COMPANY HEADER
-            // =================================================
-
             Row(
               crossAxisAlignment:
               CrossAxisAlignment.start,
@@ -385,7 +539,8 @@ class _AdminScreensState extends State<AdminScreens> {
                         TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 19,
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                          FontWeight.bold,
                         ),
                       ),
 
@@ -428,9 +583,7 @@ class _AdminScreensState extends State<AdminScreens> {
                           size: 17,
                           color: color,
                         ),
-
                         const SizedBox(width: 5),
-
                         Flexible(
                           child: Text(
                             status,
@@ -452,10 +605,6 @@ class _AdminScreensState extends State<AdminScreens> {
             ),
 
             const Divider(height: 30),
-
-            // =================================================
-            // EMPLOYER INFORMATION
-            // =================================================
 
             if (contactPerson.isNotEmpty)
               buildInfoRow(
@@ -501,9 +650,7 @@ class _AdminScreensState extends State<AdminScreens> {
 
             const SizedBox(height: 12),
 
-            // =================================================
             // APPROVE / REJECT
-            // =================================================
 
             if (status.toUpperCase() == 'PENDING')
               Row(
@@ -515,8 +662,11 @@ class _AdminScreensState extends State<AdminScreens> {
                           employer,
                         );
                       },
-                      icon: const Icon(Icons.check),
-                      label: const Text('APPROVE'),
+                      icon: const Icon(
+                        Icons.check,
+                      ),
+                      label:
+                      const Text('APPROVE'),
                       style:
                       ElevatedButton.styleFrom(
                         backgroundColor:
@@ -536,8 +686,11 @@ class _AdminScreensState extends State<AdminScreens> {
                           employer,
                         );
                       },
-                      icon: const Icon(Icons.close),
-                      label: const Text('REJECT'),
+                      icon: const Icon(
+                        Icons.close,
+                      ),
+                      label:
+                      const Text('REJECT'),
                       style:
                       OutlinedButton.styleFrom(
                         foregroundColor:
@@ -550,9 +703,7 @@ class _AdminScreensState extends State<AdminScreens> {
 
             const SizedBox(height: 10),
 
-            // =================================================
             // DELETE
-            // =================================================
 
             SizedBox(
               width: double.infinity,
@@ -570,7 +721,231 @@ class _AdminScreensState extends State<AdminScreens> {
                 ),
                 style:
                 OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
+                  foregroundColor:
+                  Colors.red,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =========================================================
+  // APPLICANT CARD
+  // =========================================================
+
+  Widget buildApplicantCard(
+      Map<String, dynamic> applicant,
+      ) {
+    final fullName =
+        applicant['fullName']?.toString() ??
+            'Unknown Applicant';
+
+    final email =
+        applicant['email']?.toString() ?? '';
+
+    final phone =
+        applicant['phone']?.toString() ?? '';
+
+    final country =
+        applicant['country']?.toString() ?? '';
+
+    final experience =
+        applicant['experience']?.toString() ?? '';
+
+    final skills =
+        applicant['skills']?.toString() ?? '';
+
+    final passportNumber =
+        applicant['passportNumber']?.toString() ??
+            '';
+
+    final cvFileName =
+        applicant['cvFileName']?.toString() ?? '';
+
+    final cvUrl =
+        applicant['cvUrl']?.toString() ?? '';
+
+    final profileImage =
+        applicant['profileImage']?.toString() ?? '';
+
+    final user = applicant['user'];
+
+    String username = '';
+
+    if (user is Map) {
+      username =
+          user['username']?.toString() ?? '';
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment:
+          CrossAxisAlignment.start,
+          children: [
+            // =================================================
+            // APPLICANT HEADER
+            // =================================================
+
+            Row(
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+              children: [
+                profileImage.isNotEmpty
+                    ? CircleAvatar(
+                  radius: 30,
+                  backgroundImage:
+                  NetworkImage(
+                    profileImage,
+                  ),
+                )
+                    : CircleAvatar(
+                  radius: 30,
+                  child: Text(
+                    fullName.isNotEmpty
+                        ? fullName[0]
+                        .toUpperCase()
+                        : 'A',
+                    style:
+                    const TextStyle(
+                      fontSize: 23,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 14),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        fullName,
+                        maxLines: 2,
+                        overflow:
+                        TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight:
+                          FontWeight.bold,
+                        ),
+                      ),
+
+                      if (username.isNotEmpty)
+                        Text(
+                          '@$username',
+                          maxLines: 1,
+                          overflow:
+                          TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color:
+                            Colors.grey[600],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const Divider(height: 30),
+
+            // =================================================
+            // APPLICANT INFORMATION
+            // =================================================
+
+            if (email.isNotEmpty)
+              buildInfoRow(
+                Icons.email,
+                'Email',
+                email,
+              ),
+
+            if (phone.isNotEmpty)
+              buildInfoRow(
+                Icons.phone,
+                'Phone',
+                phone,
+              ),
+
+            if (country.isNotEmpty)
+              buildInfoRow(
+                Icons.public,
+                'Country',
+                country,
+              ),
+
+            if (experience.isNotEmpty)
+              buildInfoRow(
+                Icons.work_history,
+                'Experience',
+                experience,
+              ),
+
+            if (skills.isNotEmpty)
+              buildInfoRow(
+                Icons.build,
+                'Skills',
+                skills,
+              ),
+
+            if (passportNumber.isNotEmpty)
+              buildInfoRow(
+                Icons.badge,
+                'Passport',
+                passportNumber,
+              ),
+
+            if (cvFileName.isNotEmpty)
+              buildInfoRow(
+                Icons.description,
+                'CV',
+                cvFileName,
+              ),
+
+            if (cvUrl.isNotEmpty)
+              buildInfoRow(
+                Icons.link,
+                'CV URL',
+                cvUrl,
+              ),
+
+            const SizedBox(height: 12),
+
+            // =================================================
+            // DELETE APPLICANT
+            // =================================================
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  deleteApplicant(
+                    applicant,
+                  );
+                },
+                icon: const Icon(
+                  Icons.delete_outline,
+                ),
+                label: const Text(
+                  'DELETE APPLICANT',
+                ),
+                style:
+                OutlinedButton.styleFrom(
+                  foregroundColor:
+                  Colors.red,
                 ),
               ),
             ),
@@ -629,49 +1004,20 @@ class _AdminScreensState extends State<AdminScreens> {
   }
 
   // =========================================================
-  // BUILD
+  // EMPLOYERS TAB
   // =========================================================
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Admin - Employers',
-        ),
+  Widget buildEmployersTab() {
+    if (loadingEmployers) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-        actions: [
-          // REFRESH
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed:
-            loading ? null : loadEmployers,
-            icon: const Icon(
-              Icons.refresh,
-            ),
-          ),
-
-          // LOGOUT
-          IconButton(
-            tooltip: 'Logout',
-            onPressed: logout,
-            icon: const Icon(
-              Icons.logout,
-            ),
-          ),
-        ],
-      ),
-
-      body: loading
-          ? const Center(
-        child:
-        CircularProgressIndicator(),
-      )
-          : errorMessage != null
-          ? Center(
+    if (employerErrorMessage != null) {
+      return Center(
         child: Padding(
-          padding:
-          const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment:
             MainAxisAlignment.center,
@@ -685,94 +1031,247 @@ class _AdminScreensState extends State<AdminScreens> {
               const SizedBox(height: 16),
 
               Text(
-                errorMessage!,
-                textAlign:
-                TextAlign.center,
+                employerErrorMessage!,
+                textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: 20),
 
               ElevatedButton.icon(
-                onPressed:
-                loadEmployers,
-                icon:
-                const Icon(
+                onPressed: loadEmployers,
+                icon: const Icon(
                   Icons.refresh,
                 ),
-                label:
-                const Text(
+                label: const Text(
                   'TRY AGAIN',
                 ),
               ),
             ],
           ),
         ),
-      )
-          : RefreshIndicator(
-        onRefresh:
-        loadEmployers,
-        child: employers.isEmpty
-            ? ListView(
-          physics:
-          const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(
-              height: 250,
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: loadEmployers,
+      child: employers.isEmpty
+          ? ListView(
+        physics:
+        const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 250),
+          Center(
+            child: Text(
+              'No employers found.',
             ),
-            Center(
-              child: Text(
-                'No employers found.',
-              ),
-            ),
-          ],
-        )
-            : ListView(
-          padding:
-          const EdgeInsets.all(
-            16,
           ),
-          children: [
-            const Text(
-              'Employer Management',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight:
-                FontWeight.bold,
+        ],
+      )
+          : ListView(
+        padding:
+        const EdgeInsets.all(16),
+        children: [
+          const Text(
+            'Employer Management',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight:
+              FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            '${employers.length} employer(s)',
+            style: TextStyle(
+              color: Colors.grey[600],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          ...employers.map(
+                (employer) {
+              if (employer is Map) {
+                return buildEmployerCard(
+                  Map<String, dynamic>.from(
+                    employer,
+                  ),
+                );
+              }
+
+              return const SizedBox();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // APPLICANTS TAB
+  // =========================================================
+
+  Widget buildApplicantsTab() {
+    if (loadingApplicants) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (applicantErrorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment:
+            MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 60,
+                color: Colors.red,
               ),
-            ),
 
-            const SizedBox(
-              height: 6,
-            ),
+              const SizedBox(height: 16),
 
-            Text(
-              '${employers.length} employer(s)',
-              style: TextStyle(
-                color:
-                Colors.grey[600],
+              Text(
+                applicantErrorMessage!,
+                textAlign: TextAlign.center,
               ),
+
+              const SizedBox(height: 20),
+
+              ElevatedButton.icon(
+                onPressed: loadApplicants,
+                icon: const Icon(
+                  Icons.refresh,
+                ),
+                label: const Text(
+                  'TRY AGAIN',
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: loadApplicants,
+      child: applicants.isEmpty
+          ? ListView(
+        physics:
+        const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 250),
+          Center(
+            child: Text(
+              'No applicants found.',
             ),
-
-            const SizedBox(
-              height: 20,
+          ),
+        ],
+      )
+          : ListView(
+        padding:
+        const EdgeInsets.all(16),
+        children: [
+          const Text(
+            'Applicant Management',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight:
+              FontWeight.bold,
             ),
+          ),
 
-            ...employers.map(
-                  (employer) {
-                if (employer is Map) {
-                  return buildEmployerCard(
-                    Map<String,
-                        dynamic>.from(
-                      employer,
-                    ),
-                  );
-                }
+          const SizedBox(height: 6),
 
-                return const SizedBox();
-              },
+          Text(
+            '${applicants.length} applicant(s)',
+            style: TextStyle(
+              color: Colors.grey[600],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          ...applicants.map(
+                (applicant) {
+              if (applicant is Map) {
+                return buildApplicantCard(
+                  Map<String, dynamic>.from(
+                    applicant,
+                  ),
+                );
+              }
+
+              return const SizedBox();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // BUILD
+  // =========================================================
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Admin Dashboard',
+        ),
+
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: refreshAll,
+            icon: const Icon(
+              Icons.refresh,
+            ),
+          ),
+
+          IconButton(
+            tooltip: 'Logout',
+            onPressed: logout,
+            icon: const Icon(
+              Icons.logout,
+            ),
+          ),
+        ],
+
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(
+              icon: const Icon(
+                Icons.business,
+              ),
+              text:
+              'Employers (${employers.length})',
+            ),
+            Tab(
+              icon: const Icon(
+                Icons.people,
+              ),
+              text:
+              'Applicants (${applicants.length})',
             ),
           ],
         ),
+      ),
+
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          buildEmployersTab(),
+          buildApplicantsTab(),
+        ],
       ),
     );
   }
