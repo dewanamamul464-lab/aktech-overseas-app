@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
 
+import 'providers/ai_job_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
@@ -10,6 +12,7 @@ import 'screens/admin_screens.dart';
 import 'screens/employer_dashboard_screen.dart';
 import 'screens/post_job_screen.dart';
 import 'screens/employer_applications_screen.dart';
+import 'screens/recommended_jobs_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,113 +29,113 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
+    return ChangeNotifierProvider(
+      create: (_) => AiJobProvider(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'AKTech Overseas',
+        initialRoute: '/',
+        routes: {
+          // SPLASH
+          '/': (context) => const SplashScreen(),
 
-      title: 'AKTech Overseas',
+          // LOGIN
+          '/login': (context) => const LoginScreen(),
 
-      initialRoute: '/',
+          // NORMAL USER
+          '/home': (context) => const HomeScreen(),
 
-      routes: {
-        // =====================================================
-        // SPLASH
-        // =====================================================
+          // ADMIN
+          '/admin': (context) => const AdminScreens(),
 
-        '/': (context) => const SplashScreen(),
+          // EMPLOYER DASHBOARD
+          '/employer': (context) => const EmployerDashboardScreen(),
 
-        // =====================================================
-        // LOGIN
-        // =====================================================
+          // AI JOB MATCHES
+          '/ai-job-matches': (context) {
+            final arguments = ModalRoute.of(context)?.settings.arguments;
 
-        '/login': (context) => const LoginScreen(),
+            int? applicantId;
 
-        // =====================================================
-        // NORMAL USER
-        // =====================================================
+            if (arguments is int) {
+              applicantId = arguments;
+            } else if (arguments != null) {
+              applicantId = int.tryParse(arguments.toString());
+            }
 
-        '/home': (context) => const HomeScreen(),
-
-        // =====================================================
-        // ADMIN
-        // =====================================================
-
-        '/admin': (context) => const AdminScreens(),
-
-        // =====================================================
-        // EMPLOYER DASHBOARD
-        // =====================================================
-
-        '/employer': (context) =>
-        const EmployerDashboardScreen(),
-
-        // =====================================================
-        // POST JOB
-        // =====================================================
-
-        '/post-job': (context) {
-          final arguments =
-              ModalRoute.of(context)?.settings.arguments;
-
-          int? employerId;
-
-          if (arguments is int) {
-            employerId = arguments;
-          } else if (arguments != null) {
-            employerId = int.tryParse(arguments.toString());
-          }
-
-          if (employerId == null) {
-            return const Scaffold(
-              body: Center(
-                child: Text(
-                  'Employer ID not found.',
-                  style: TextStyle(
-                    fontSize: 18,
+            if (applicantId == null) {
+              return const Scaffold(
+                body: Center(
+                  child: Text(
+                    'Applicant ID not found.',
+                    style: TextStyle(fontSize: 18),
                   ),
                 ),
-              ),
+              );
+            }
+
+            return RecommendedJobsScreen(
+              applicantId: applicantId,
             );
-          }
+          },
 
-          return PostJobScreen(
-            employerId: employerId,
-          );
-        },
+          // POST JOB
+          '/post-job': (context) {
+            final arguments = ModalRoute.of(context)?.settings.arguments;
 
-        // =====================================================
-        // EMPLOYER APPLICATIONS
-        // =====================================================
+            int? employerId;
 
-        '/employer-applications': (context) {
-          final arguments =
-              ModalRoute.of(context)?.settings.arguments;
+            if (arguments is int) {
+              employerId = arguments;
+            } else if (arguments != null) {
+              employerId = int.tryParse(arguments.toString());
+            }
 
-          int? employerId;
-
-          if (arguments is int) {
-            employerId = arguments;
-          } else if (arguments != null) {
-            employerId = int.tryParse(arguments.toString());
-          }
-
-          if (employerId == null) {
-            return const Scaffold(
-              body: Center(
-                child: Text(
-                  'Employer ID not found.',
-                  style: TextStyle(
-                    fontSize: 18,
+            if (employerId == null) {
+              return const Scaffold(
+                body: Center(
+                  child: Text(
+                    'Employer ID not found.',
+                    style: TextStyle(fontSize: 18),
                   ),
                 ),
-              ),
-            );
-          }
+              );
+            }
 
-          return EmployerApplicationsScreen(
-            employerId: employerId,
-          );
+            return PostJobScreen(
+              employerId: employerId,
+            );
+          },
+
+          // EMPLOYER APPLICATIONS
+          '/employer-applications': (context) {
+            final arguments = ModalRoute.of(context)?.settings.arguments;
+
+            int? employerId;
+
+            if (arguments is int) {
+              employerId = arguments;
+            } else if (arguments != null) {
+              employerId = int.tryParse(arguments.toString());
+            }
+
+            if (employerId == null) {
+              return const Scaffold(
+                body: Center(
+                  child: Text(
+                    'Employer ID not found.',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ),
+              );
+            }
+
+            return EmployerApplicationsScreen(
+              employerId: employerId,
+            );
+          },
         },
-      },
+      ),
     );
   }
 }

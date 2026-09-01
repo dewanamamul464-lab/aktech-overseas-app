@@ -7,6 +7,7 @@ import '../services/profile_service.dart';
 import 'jobs_screen.dart';
 import 'my_applications_screen.dart';
 import 'profile_screen.dart';
+import 'recommended_jobs_screen.dart';
 import 'saved_jobs_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String username = 'User';
   bool loading = true;
+  int? applicantId;
 
   @override
   void initState() {
@@ -48,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
           profile.fullName.trim().isNotEmpty) {
         setState(() {
           username = profile.fullName.trim();
+          applicantId = profile.id;
           loading = false;
         });
 
@@ -180,6 +183,26 @@ class _HomeScreenState extends State<HomeScreen> {
   // =========================================================
   // OPEN PROFILE
   // =========================================================
+
+  void openAiJobMatches() {
+    if (applicantId == null || applicantId == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Applicant profile ID is not available.'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RecommendedJobsScreen(
+          applicantId: applicantId!,
+        ),
+      ),
+    );
+  }
 
   void openProfile() {
     Navigator.push(
@@ -1039,6 +1062,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+        ),
+
+        const SizedBox(
+          height: 12,
+        ),
+
+        SizedBox(
+          width: double.infinity,
+          child: _actionCard(
+            icon: Icons.auto_awesome_rounded,
+            title: 'AI Job Matches',
+            iconColor: const Color(0xFF6A1B9A),
+            iconBackground: const Color(0xFFF3E5F5),
+            compact: smallScreen,
+            onTap: openAiJobMatches,
+          ),
         ),
       ],
     );
