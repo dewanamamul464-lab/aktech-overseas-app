@@ -23,6 +23,11 @@ class _RecommendedJobsScreenState extends State<RecommendedJobsScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('========================================');
+      print('AI RECOMMENDATIONS SCREEN');
+      print('APPLICANT ID: ${widget.applicantId}');
+      print('========================================');
+
       context
           .read<AiJobProvider>()
           .loadRecommendations(widget.applicantId);
